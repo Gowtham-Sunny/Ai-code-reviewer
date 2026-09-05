@@ -1,0 +1,6 @@
+groq
+requests
+python-dotenv
+pyflakes
+astroid
+# Optional: eslint for JavaScript/TypeScript analysis (install via npm: npm install -g eslint)

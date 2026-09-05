@@ -1,0 +1,59 @@
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout target repo
+        uses: actions/checkout@v4
+        with:
+          path: target-repo
+
+      - name: Checkout AI Code Reviewer
+        uses: actions/checkout@v4
+        with:
+          repository: AjAyrAo43/Ai-code-reviewer
+          path: ai-code-reviewer
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        working-directory: ./ai-code-reviewer
+        run: |
+          ls -la
+          pip install -r requirements.txt
+
+      - name: Run AI Code Review
+        id: review
+        working-directory: ./ai-code-reviewer
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          python src/main.py
+
+      - name: Post fallback comment on failure
+        if: failure() && steps.review.conclusion == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '❌ AI review encountered an error. Please review manually.'
+            });
